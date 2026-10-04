@@ -1,0 +1,269 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Centralized Primitives & Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    // Dynamic Role Mapping based on the central users profile document
+    function isBootstrappedAdmin() {
+      return isSignedIn() && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in ['christopherosorio7@gmail.com', 'admin@pueblopulse.org', 'moderator@pueblopulse.org'];
+    }
+
+    function getUserRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : 'User';
+    }
+    
+    function hasAdminRole() {
+      return isSignedIn() && (isBootstrappedAdmin() || getUserRole() in ['Super Admin', 'City Administrator', 'Administrator']);
+    }
+    
+    function hasModRole() {
+      return isSignedIn() && (isBootstrappedAdmin() || getUserRole() in ['Super Admin', 'City Administrator', 'Administrator', 'Neighborhood Moderator', 'City Moderator']);
+    }
+    
+    // ----------------------------------------------------
+    // Collection Match Blocks
+    // ----------------------------------------------------
+    
+    // Users Profile Collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
+      // Validation schema structure helper
+      function isValidUserProfile(data) {
+        return data.keys().hasAll(['id', 'name', 'email', 'role'])
+          && data.id is string && data.id.size() <= 128
+          && data.name is string && data.name.size() <= 100
+          && data.email is string && data.email.size() <= 100
+          && data.role is string
+          && (!('points' in data) || data.points is int);
+      }
+      
+      // Prevent self-privilege escalation on first registrations
+      allow create: if isOwner(userId)
+        && isValidUserProfile(incoming())
+        && (
+          (
+            incoming().role in ['Standard User', 'User', 'Verified User', 'Business Owner']
+            && (!('points' in incoming()) || incoming().points <= 250)
+          ) || isBootstrappedAdmin()
+        );
+        
+      // Ensure immutable identity state fields on standard user edits
+      allow update: if isOwner(userId)
+        && isValidUserProfile(incoming())
+        && (
+          (
+            (incoming().role == existing().role || (existing().role in ['Standard User', 'User', 'Verified User'] && incoming().role == 'Business Owner'))
+            && (!('points' in incoming()) || incoming().points >= existing().points)
+            && (!('residentVerified' in incoming()) || incoming().residentVerified == existing().residentVerified)
+          ) || isBootstrappedAdmin()
+        );
+        
+      // Administrative override gate
+      allow write: if hasAdminRole();
+    }
+    
+    // Community Forums Feed
+    match /posts/{postId} {
+      allow get, list: if true;
+      
+      function isValidPost(data) {
+        return data.keys().hasAll(['id', 'author', 'title', 'content', 'neighborhood'])
+          && data.id is string && data.id.size() <= 128
+          && data.author is string && data.author.size() <= 100
+          && data.title is string && data.title.size() <= 200
+          && data.content is string && data.content.size() <= 20000;
+      }
+      
+      allow create: if isSignedIn() && isValidPost(incoming());
+      
+      allow update: if isSignedIn() && isValidPost(incoming()) && (
+        (existing().author == request.auth.token.name || existing().author == request.auth.uid) || hasModRole()
+      );
+      
+      allow delete: if isSignedIn() && (
+        (existing().author == request.auth.token.name || existing().author == request.auth.uid) || hasModRole()
+      );
+    }
+    
+    // Merchant Ownership Claims
+    match /claims/{claimId} {
+      allow get: if isSignedIn() && (resource.data.ownerId == request.auth.uid || hasAdminRole());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || hasAdminRole());
+      
+      function isValidClaim(data) {
+        return data.keys().hasAll(['id', 'businessId', 'ownerId', 'status'])
+          && data.id is string
+          && data.businessId is string
+          && data.ownerId is string
+          && data.status is string && data.status in ['Pending', 'Approved', 'Rejected'];
+      }
+      
+      allow create: if isSignedIn()
+        && isValidClaim(incoming())
+        && incoming().ownerId == request.auth.uid
+        && incoming().status == 'Pending';
+        
+      allow update: if hasAdminRole() && isValidClaim(incoming());
+      allow delete: if hasAdminRole();
+    }
+    
+    // Physical Resident Verification Ingestion
+    match /verifications/{verificationId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || hasModRole());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || hasModRole());
+      
+      function isValidVerif(data) {
+        return data.keys().hasAll(['id', 'userId', 'method', 'status'])
+          && data.id is string
+          && data.userId is string
+          && data.status is string && data.status in ['Pending', 'Approved', 'Rejected'];
+      }
+      
+      allow create: if isSignedIn()
+        && isValidVerif(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().status == 'Pending';
+        
+      allow update: if hasModRole() && isValidVerif(incoming());
+      allow delete: if hasAdminRole();
+    }
+    
+    // Content Abuse & Spam Flag Reports
+    match /reports/{reportId} {
+      allow read: if hasModRole();
+      
+      function isValidReport(data) {
+        return data.keys().hasAll(['id', 'itemId', 'itemType', 'reason', 'status'])
+          && data.id is string
+          && data.itemId is string
+          && data.itemType is string
+          && data.reason is string && data.reason.size() <= 1000
+          && data.status is string && data.status in ['Pending', 'Suppressed', 'Dismissed'];
+      }
+      
+      allow create: if isSignedIn()
+        && isValidReport(incoming())
+        && incoming().status == 'Pending';
+        
+      allow update: if hasModRole() && isValidReport(incoming());
+      allow delete: if hasAdminRole();
+    }
+    
+    // Moderator Action Log Board
+    match /actions/{actionId} {
+      allow read: if true;
+      
+      function isValidAction(data) {
+        return data.keys().hasAll(['id', 'moderatorName', 'action', 'date'])
+          && data.id is string
+          && data.moderatorName is string
+          && data.action is string && data.action.size() <= 2000
+          && data.date is string;
+      }
+      
+      allow create: if isSignedIn() && isValidAction(incoming()) && hasModRole();
+      allow update, delete: if false;
+    }
+
+    // Local Food, Drink & Merchant Directories
+    match /businesses/{businessId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if hasAdminRole();
+    }
+
+    // Community Dynamic Events & Festivals
+    match /events/{eventId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if hasAdminRole() || hasModRole();
+    }
+
+    // Pueblo Jobs Board
+    match /jobs/{jobId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if hasAdminRole() || hasModRole();
+    }
+
+    // Lost and Found Pets/ Belongings board
+    match /lostFound/{itemId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if hasAdminRole() || hasModRole();
+    }
+
+    // Public Safety, Weather & Infrastructure Real-time Alerts
+    match /alerts/{alertId} {
+      allow get, list: if true;
+      allow create: if hasModRole() || hasAdminRole();
+      allow update: if hasModRole() || hasAdminRole();
+      allow delete: if hasAdminRole();
+    }
+
+    // Classified Local Marketplace
+    match /marketplace/{itemId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if hasAdminRole() || hasModRole();
+    }
+
+    // Content Ban Appeals board
+    match /appeals/{appealId} {
+      allow read: if hasModRole() || (isSignedIn() && resource.data.userEmail == request.auth.token.email);
+      allow create: if isSignedIn();
+      allow update: if hasModRole() || hasAdminRole();
+      allow delete: if hasAdminRole();
+    }
+
+    // Direct Messaging Conversations & Messages
+    match /conversations/{conversationId} {
+      allow read, write: if isSignedIn();
+      
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    // Personal Notifications alerts
+    match /notifications/{notifId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

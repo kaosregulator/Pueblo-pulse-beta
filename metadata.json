@@ -1,0 +1,6 @@
+{
+  "name": "Steel City Community",
+  "description": "Premium full-stack community platform for the Steel City. Discover local events, interact on district feeds, claim merchant portals, apply for local jobs, complete resident verifications, and monitor real-time city moderation and command grids.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

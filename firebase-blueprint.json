@@ -1,0 +1,256 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role details and badges info",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "points": { "type": "integer" },
+        "neighborhood": { "type": "string" },
+        "activeCity": { "type": "string" },
+        "emailVerified": { "type": "boolean" },
+        "phoneVerified": { "type": "boolean" },
+        "residentVerified": { "type": "boolean" },
+        "banStatus": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "BusinessClaim": {
+      "title": "BusinessClaim",
+      "description": "Business claiming request by owners",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "businessName": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "ownerEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "businessId", "ownerId", "status"]
+    },
+    "VerificationRequest": {
+      "title": "VerificationRequest",
+      "description": "Resident badge verification request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "method": { "type": "string" },
+        "detail": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "userId", "method", "status"]
+    },
+    "ContentReport": {
+      "title": "ContentReport",
+      "description": "Flagged and reported posts or comments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemType": { "type": "string" },
+        "itemTitle": { "type": "string" },
+        "itemContent": { "type": "string" },
+        "itemNeighborhood": { "type": "string" },
+        "itemAuthor": { "type": "string" },
+        "reporter": { "type": "string" },
+        "reason": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Suppressed", "Dismissed"] },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "itemId", "itemType", "reason", "status"]
+    },
+    "ModeratorAction": {
+      "title": "ModeratorAction",
+      "description": "System or human moderator action log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "moderatorName": { "type": "string" },
+        "moderatorRole": { "type": "string" },
+        "action": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "moderatorName", "action", "date"]
+    },
+    "ForumPost": {
+      "title": "ForumPost",
+      "description": "A single community post in the forum",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "author": { "type": "string" },
+        "authorRole": { "type": "string" },
+        "category": { "type": "string" },
+        "postType": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "author", "title", "content", "neighborhood"]
+    },
+    "BusinessItem": {
+      "title": "BusinessItem",
+      "description": "Pueblo local business directory item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "tier": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "rating": { "type": "number" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "neighborhood": { "type": "string" }
+      },
+      "required": ["id", "name", "tier", "category", "neighborhood"]
+    },
+    "EventItem": {
+      "title": "EventItem",
+      "description": "Community dynamic events and festivals registry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "neighborhood": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "date", "neighborhood"]
+    },
+    "JobItem": {
+      "title": "JobItem",
+      "description": "Pueblo county employment vacancies board",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "businessName": { "type": "string" },
+        "type": { "type": "string" },
+        "neighborhood": { "type": "string" }
+      },
+      "required": ["id", "title", "businessName", "type", "neighborhood"]
+    },
+    "LostFoundItem": {
+      "title": "LostFoundItem",
+      "description": "Lost and found dynamic neighborhood logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "contact": { "type": "string" }
+      },
+      "required": ["id", "type", "title", "neighborhood", "contact"]
+    },
+    "SafetyAlert": {
+      "title": "SafetyAlert",
+      "description": "City safety notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "level": { "type": "string" }
+      },
+      "required": ["id", "category", "title", "content", "level"]
+    },
+    "MarketplaceItem": {
+      "title": "MarketplaceItem",
+      "description": "Classified listing and items for sale",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "price": { "type": "string" },
+        "seller": { "type": "string" },
+        "neighborhood": { "type": "string" }
+      },
+      "required": ["id", "title", "price", "seller", "neighborhood"]
+    },
+    "ContentAppeal": {
+      "title": "ContentAppeal",
+      "description": "Appeals against suppressed content or moderator bans",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reportId": { "type": "string" },
+        "itemId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "reason": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "reportId", "itemId", "userEmail", "reason", "status"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Primary user registry for profiles, stats and badging"
+    },
+    "claims/{claimId}": {
+      "schema": "BusinessClaim",
+      "description": "Merchant ownership validation forms"
+    },
+    "verifications/{verificationId}": {
+      "schema": "VerificationRequest",
+      "description": "Pueblo local physical address validation forms"
+    },
+    "reports/{reportId}": {
+      "schema": "ContentReport",
+      "description": "Spam flag and content moderation issues"
+    },
+    "actions/{actionId}": {
+      "schema": "ModeratorAction",
+      "description": "Admin/moderator activity logs"
+    },
+    "posts/{postId}": {
+      "schema": "ForumPost",
+      "description": "Town general forums feeds and community voice boards"
+    },
+    "businesses/{businessId}": {
+      "schema": "BusinessItem",
+      "description": "Local food and merchant directory listings with loyalty perks"
+    },
+    "events/{eventId}": {
+      "schema": "EventItem",
+      "description": "Dynamic neighborhood town halls, incline runs, and cultural festivals"
+    },
+    "jobs/{jobId}": {
+      "schema": "JobItem",
+      "description": "Pueblo jobs board and regional employer directory"
+    },
+    "lostFound/{lostFoundId}": {
+      "schema": "LostFoundItem",
+      "description": "Missing pets or belongings notice listings"
+    },
+    "alerts/{alertId}": {
+      "schema": "SafetyAlert",
+      "description": "Public safety, water advisory, and critical weather warnings"
+    },
+    "marketplace/{itemId}": {
+      "schema": "MarketplaceItem",
+      "description": "Classified local marketplace directory and listings"
+    },
+    "appeals/{appealId}": {
+      "schema": "ContentAppeal",
+      "description": "Moderator status and suppression challenge appeals board"
+    }
+  }
+}

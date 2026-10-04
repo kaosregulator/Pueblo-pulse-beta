@@ -1,0 +1,71 @@
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#2d221c" />
+      <stop offset="100%" stop-color="#1c1917" />
+    </radialGradient>
+    <linearGradient id="chileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="50%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+    <linearGradient id="stemGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="50%" stop-color="#fb923c" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Rounded Container -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+  
+  <!-- Subtle Grid Accent -->
+  <g stroke="#2e2a24" stroke-width="2" opacity="0.4">
+    <line x1="0" y1="128" x2="512" y2="128" />
+    <line x1="0" y1="256" x2="512" y2="256" />
+    <line x1="0" y1="384" x2="512" y2="384" />
+    <line x1="128" y1="0" x2="128" y2="512" />
+    <line x1="256" y1="0" x2="256" y2="512" />
+    <line x1="384" y1="0" x2="384" y2="512" />
+  </g>
+  
+  <!-- Glowing Pulse Background Wave -->
+  <path d="M 40,256 L 160,256 L 190,190 L 220,350 L 250,110 L 280,390 L 310,230 L 330,280 L 360,256 L 472,256" 
+        fill="none" stroke="#22c55e" stroke-width="4" opacity="0.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- The Legendary Pueblo Chile -->
+  <g transform="translate(256, 240) scale(1.15)">
+    <!-- Stem/Cap -->
+    <path d="M-20,-110 C-10,-140 10,-140 20,-110 C15,-85 -15,-85 -20,-110 Z" fill="url(#stemGrad)" />
+    <path d="M0,-120 C15,-150 40,-130 50,-110" fill="none" stroke="url(#stemGrad)" stroke-width="12" stroke-linecap="round" />
+    
+    <!-- Chili Body (Tapered, Curved Pueblo Mira Sol style) -->
+    <path d="M -45,-90 
+             C -55,-50 -60,0 -40,50 
+             C -25,85 -5,120 15,140 
+             C 25,150 30,155 35,145
+             C 40,135 30,110 20,80
+             C 5,40 15,-10 35,-50
+             C 45,-75 45,-90 45,-90
+             Z" 
+          fill="url(#chileGrad)" 
+          stroke="#7f1d1d" 
+          stroke-width="2"/>
+          
+    <!-- Highlights and contours for 3D appearance -->
+    <path d="M -30,-80 C -38,-50 -42,0 -25,40 C -15,65 -2,95 10,115" 
+          fill="none" stroke="#fca5a5" stroke-width="5" opacity="0.6" stroke-linecap="round"/>
+          
+    <path d="M 22,-45 C 28,-15 22,25 10,55" 
+          fill="none" stroke="#7f1d1d" stroke-width="3" opacity="0.5" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Superimposed high-contrast Heart Pulse Wave (The "Pulse") -->
+  <path d="M 40,256 L 160,256 L 190,190 L 220,350 L 250,110 L 280,390 L 310,230 L 330,280 L 360,256 L 472,256" 
+        fill="none" stroke="url(#pulseGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"
+        filter="drop-shadow(0px 4px 12px rgba(249, 115, 22, 0.5))"/>
+</svg>
