@@ -4,6 +4,7 @@ import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import { createPuebloRouter } from "./server/pueblo/routes";
 
 dotenv.config();
 
@@ -45,7 +46,7 @@ function ensurePwaAssets() {
 ensurePwaAssets();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
@@ -65,6 +66,10 @@ if (API_KEY) {
 } else {
   console.warn("⚠️ GEMINI_API_KEY is not defined in the environment. AI concierge service is in offline demo fallback mode.");
 }
+
+// Pueblo data hub: map layers from county GIS, NWS, USGS, CDOT and the
+// Pueblo Transit schedule, cached and labelled with their freshness.
+app.use("/api/pueblo", createPuebloRouter());
 
 // REST API endpoints
 app.get("/api/health", (req, res) => {

@@ -56,7 +56,7 @@ import {
 
 // Import modular sub-sections
 import { SvgAvatar } from "./components/AvatarCreator";
-import InteractiveMap from "./components/InteractiveMap";
+import PuebloLiveMap from "./components/PuebloLiveMap";
 import AiAssistant from "./components/AiAssistant";
 import HomeFeed from "./components/HomeFeed";
 import NearMe from "./components/NearMe";
@@ -68,7 +68,9 @@ import HeritageTab from "./components/HeritageTab";
 import CommunityTab from "./components/CommunityTab";
 import ProfileModTab from "./components/ProfileModTab";
 import LibrariesHub from "./components/LibrariesHub";
-import { PUEBLO_BUS_ROUTES } from "./components/WeatherTransitHub";
+import { PinnedRoutes } from "./components/PuebloTransit";
+
+const PINNED_ROUTES_KEY = "pueblo-transit-pins-v1";
 
 // New Expansion Components
 import MediaUploader from "./components/MediaUploader";
@@ -263,12 +265,16 @@ export default function App() {
   }, [activeToasts]);
 
   // --- Favorited Bus Routes State & Quick Boards ---
+  // Pins are Pueblo Transit GTFS route ids. The old simulated tracker stored
+  // made-up ids (e.g. "route_2_north") under "favorited_bus_routes"; those
+  // match no real route and could never be unpinned, so they are dropped.
   const [favoritedRouteIds, setFavoritedRouteIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem("favorited_bus_routes");
-      return saved ? JSON.parse(saved) : ["route_2_north"]; // defaults to Lane 2 North Express
+      localStorage.removeItem("favorited_bus_routes");
+      const saved = JSON.parse(localStorage.getItem(PINNED_ROUTES_KEY) || "[]");
+      return Array.isArray(saved) ? saved.filter((id) => typeof id === "string") : [];
     } catch {
-      return ["route_2_north"];
+      return [];
     }
   });
 
@@ -292,14 +298,18 @@ export default function App() {
           id: `fav-add-${Date.now()}`,
           type: "message",
           title: "⭐ Route Pinned to Sideboard!",
-          body: "Live estimated approach times will display persistently",
+          body: "Today's scheduled service now shows in your sidebar",
           date: "Just Now",
           read: false
         };
         setActiveToasts(prevToasts => [...prevToasts, successNotif]);
         playDing();
       }
-      localStorage.setItem("favorited_bus_routes", JSON.stringify(next));
+      try {
+        localStorage.setItem(PINNED_ROUTES_KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable: keep the pin for this visit only */
+      }
       return next;
     });
   };
@@ -1766,54 +1776,13 @@ export default function App() {
           <div className="bg-amber-50/45 border border-amber-200/80 rounded-xl p-3.5 space-y-2.5 animate-fade-in" id="favorites-board-sidebar">
             <div className="flex justify-between items-center text-[10px] font-mono uppercase text-amber-905 font-extrabold leading-none">
               <span className="flex items-center gap-1">⭐ Pinned Sideboard</span>
-              <span className="text-[8px] bg-amber-400 text-amber-950 px-1 py-0.5 rounded font-black select-none uppercase">Live Feed</span>
+              <span className="text-[8px] bg-amber-200 text-amber-950 px-1 py-0.5 rounded font-black select-none uppercase">Schedule</span>
             </div>
             
-            {favoritedRouteIds.length === 0 ? (
-              <p className="text-[10px] text-stone-400 font-sans italic py-1 leading-normal">
-                No pinned routes. Visit the <strong>Local Services 🧭</strong> tab and click "Pin Route" to see real-time updates here!
-              </p>
-            ) : (
-              <div className="space-y-2 select-none">
-                {favoritedRouteIds.map(routeId => {
-                  const matchedRoute = PUEBLO_BUS_ROUTES.find(r => r.id === routeId);
-                  if (!matchedRoute) return null;
-                  
-                  // Simulate real-time arrival minutes based on Date.now(). Completely responsive!
-                  const minutesLeft = (Math.abs(routeId.charCodeAt(0) - 100) + Math.floor(Date.now() / 30000)) % 15 + 2;
-                  
-                  return (
-                    <div 
-                      key={routeId}
-                      className="bg-white border hover:border-amber-500 rounded-lg p-2.5 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-3xs transition-all cursor-pointer font-sans"
-                      onClick={() => {
-                        setActiveTab("local_services");
-                        setTimeout(() => {
-                          document.getElementById("pueblo-encyclopedia-root")?.scrollIntoView({ behavior: "smooth" });
-                        }, 100);
-                      }}
-                      title="Click to expand active transit route tracker"
-                    >
-                      <div className="flex items-center gap-2 max-w-[80%] truncate">
-                        <span className="w-5 h-5 rounded-full bg-stone-900 text-amber-400 text-[10px] font-black flex items-center justify-center shrink-0">
-                          {matchedRoute.number}
-                        </span>
-                        <div className="truncate text-left">
-                          <p className="font-extrabold text-[11px] text-stone-900 truncate leading-none mb-0.5">{matchedRoute.name}</p>
-                          <p className="text-[8.5px] text-stone-400 font-mono tracking-wider font-extrabold truncate uppercase leading-none">{matchedRoute.frequency}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right shrink-0">
-                        <span className="inline-block bg-emerald-50 text-emerald-800 text-[9px] font-mono font-bold px-1 py-0.5 rounded border border-emerald-150 tracking-tight">
-                          in {minutesLeft}m
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <PinnedRoutes
+              routeIds={favoritedRouteIds}
+              onOpen={() => setActiveTab("local_services")}
+            />
           </div>
 
           {/* Navigation Segments */}
@@ -1974,27 +1943,14 @@ export default function App() {
                 )}
 
                 {activeTab === "map" && (
-                  <div className="space-y-4">
-                    <div className="bg-stone-50 border rounded-xl p-4 space-y-1">
-                      <h4 className="font-sans font-bold text-xs text-stone-850 flex items-center gap-1.5">
-                        <MapIcon className="w-4.5 h-4.5 text-orange-700" />
-                        Pueblo Interactive Town Stage
-                      </h4>
-                      <p className="text-[10.5px] text-stone-550 font-sans">
-                        Full Vector SVG map with municipal geolocation layers. Tap any colored pin icon inside the coordinate vectors to view events, retail deals, or active county alerts.
-                      </p>
-                    </div>
-                    <div className="bg-stone-50 rounded-xl overflow-hidden border p-1 border-stone-200 h-[480px]">
-                      <InteractiveMap
-                        events={displayEvents}
-                        businesses={displayBusinesses}
-                        jobs={displayJobs}
-                        lostFound={displayLostFound}
-                        alerts={displayAlerts}
-                        onSelectPin={handleSelectPin}
-                      />
-                    </div>
-                  </div>
+                  <PuebloLiveMap
+                    events={displayEvents}
+                    businesses={displayBusinesses}
+                    jobs={displayJobs}
+                    lostFound={displayLostFound}
+                    alerts={displayAlerts}
+                    onSelectPin={handleSelectPin}
+                  />
                 )}
 
                 {activeTab === "events" && (
