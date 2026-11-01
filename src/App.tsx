@@ -70,6 +70,8 @@ import ProfileModTab from "./components/ProfileModTab";
 import LibrariesHub from "./components/LibrariesHub";
 import { PinnedRoutes } from "./components/PuebloTransit";
 
+const PINNED_ROUTES_KEY = "pueblo-transit-pins-v1";
+
 // New Expansion Components
 import MediaUploader from "./components/MediaUploader";
 import NotificationCenter, { DEFAULT_NOTIFICATIONS, AppNotification } from "./components/NotificationCenter";
@@ -263,12 +265,16 @@ export default function App() {
   }, [activeToasts]);
 
   // --- Favorited Bus Routes State & Quick Boards ---
+  // Pins are Pueblo Transit GTFS route ids. The old simulated tracker stored
+  // made-up ids (e.g. "route_2_north") under "favorited_bus_routes"; those
+  // match no real route and could never be unpinned, so they are dropped.
   const [favoritedRouteIds, setFavoritedRouteIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem("favorited_bus_routes");
-      return saved ? JSON.parse(saved) : ["route_2_north"]; // defaults to Lane 2 North Express
+      localStorage.removeItem("favorited_bus_routes");
+      const saved = JSON.parse(localStorage.getItem(PINNED_ROUTES_KEY) || "[]");
+      return Array.isArray(saved) ? saved.filter((id) => typeof id === "string") : [];
     } catch {
-      return ["route_2_north"];
+      return [];
     }
   });
 
@@ -292,14 +298,18 @@ export default function App() {
           id: `fav-add-${Date.now()}`,
           type: "message",
           title: "⭐ Route Pinned to Sideboard!",
-          body: "Live estimated approach times will display persistently",
+          body: "Today's scheduled service now shows in your sidebar",
           date: "Just Now",
           read: false
         };
         setActiveToasts(prevToasts => [...prevToasts, successNotif]);
         playDing();
       }
-      localStorage.setItem("favorited_bus_routes", JSON.stringify(next));
+      try {
+        localStorage.setItem(PINNED_ROUTES_KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable: keep the pin for this visit only */
+      }
       return next;
     });
   };
