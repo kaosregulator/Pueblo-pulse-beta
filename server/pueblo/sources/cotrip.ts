@@ -6,7 +6,7 @@
  * COtrip publishes GeoJSON for the whole state; the hub keeps only features
  * that touch the Pueblo area.
  */
-import { firstPosition, inBBox, PUEBLO_COUNTY_BBOX } from "../geo";
+import { PUEBLO_COUNTY_BBOX, touchesBBox } from "../geo";
 import type { Feature, SourceDefinition } from "../types";
 
 const BASE = "https://data.cotrip.org/api/v1";
@@ -35,8 +35,7 @@ function cotripLayer(
       const data = await ctx.fetchJson(`${BASE}/${path}?apiKey=${key}`);
       const features: Feature[] = [];
       for (const f of data?.features || []) {
-        const at = firstPosition(f.geometry);
-        if (!at || !inBBox(at[0], at[1], PUEBLO_COUNTY_BBOX)) continue;
+        if (!touchesBBox(f.geometry, PUEBLO_COUNTY_BBOX)) continue;
         const p = f.properties || {};
         features.push({
           type: "Feature",

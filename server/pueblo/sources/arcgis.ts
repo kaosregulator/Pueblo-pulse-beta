@@ -92,7 +92,9 @@ export function arcgisLayer(options: ArcgisLayerOptions): SourceDefinition {
     async fetch(ctx): Promise<FeatureCollection> {
       layerUrl ??= await resolveLayerUrl(ctx, options);
       const features: Feature[] = [];
-      for (let offset = 0; offset < max; offset += PAGE) {
+      // Advance by what the server actually returned: a service may cap a
+      // page below PAGE, and stepping by PAGE would skip features.
+      for (let offset = 0; offset < max; ) {
         const page = await ctx.fetchJson(
           arcgisQueryUrl(layerUrl, { ...options, offset }),
         );
@@ -110,6 +112,7 @@ export function arcgisLayer(options: ArcgisLayerOptions): SourceDefinition {
         }
         const more = page?.exceededTransferLimit === true || page?.properties?.exceededTransferLimit === true;
         if (!more || batch.length === 0) break;
+        offset += batch.length;
       }
       return { type: "FeatureCollection", features: features.slice(0, max) };
     },

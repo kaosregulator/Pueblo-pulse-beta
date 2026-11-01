@@ -40,3 +40,31 @@ export function firstPosition(geometry: any): [number, number] | null {
   if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) return [c[0], c[1]];
   return null;
 }
+
+/**
+ * Whether a GeoJSON geometry touches the box: a vertex inside it, or a line
+ * segment whose extent overlaps it. Catches roads that enter the box between
+ * vertices; may keep a segment that passes just outside a corner.
+ */
+export function touchesBBox(geometry: any, box: Readonly<BBox> = PUEBLO_BBOX): boolean {
+  const overlaps = (a: number[], b: number[]) =>
+    Math.max(a[0], b[0]) >= box.west &&
+    Math.min(a[0], b[0]) <= box.east &&
+    Math.max(a[1], b[1]) >= box.south &&
+    Math.min(a[1], b[1]) <= box.north;
+  const visit = (c: any): boolean => {
+    if (!Array.isArray(c)) return false;
+    if (Number.isFinite(c[0]) && Number.isFinite(c[1])) return inBBox(c[0], c[1], box);
+    if (Array.isArray(c[0]) && Number.isFinite(c[0][0])) {
+      // A ring or line: test each vertex and each segment.
+      for (let i = 0; i < c.length; i++) {
+        if (inBBox(c[i][0], c[i][1], box)) return true;
+        if (i > 0 && overlaps(c[i - 1], c[i])) return true;
+      }
+      return false;
+    }
+    return c.some(visit);
+  };
+  if (geometry?.type === "GeometryCollection") return (geometry.geometries || []).some((g: any) => touchesBBox(g, box));
+  return visit(geometry?.coordinates);
+}

@@ -14,7 +14,8 @@ import {
 } from "./transit/gtfs";
 import { routeFeatures, stopFeatures, vehicleFeatures } from "./transit/sources";
 import { createRegistry } from "./registry";
-import { arcgisQueryUrl } from "./sources/arcgis";
+import { arcgisLayer, arcgisQueryUrl } from "./sources/arcgis";
+import { PUEBLO_COUNTY_BBOX, touchesBBox } from "./geo";
 import { gaugesFromUsgs } from "./sources/water";
 import { aqiBand } from "./sources/weather";
 import type { SourceDefinition } from "./types";
@@ -239,4 +240,42 @@ test("AQI bands follow the EPA scale", () => {
   assert.equal(aqiBand(42).label, "Good");
   assert.equal(aqiBand(101).label, "Unhealthy for sensitive groups");
   assert.equal(aqiBand(500).label, "Hazardous");
+});
+
+test("ArcGIS paging advances by the features the server returned", async () => {
+  const offsets: number[] = [];
+  const layer = arcgisLayer({
+    id: "paged",
+    name: "Paged",
+    category: "geo",
+    description: "",
+    color: "#000000",
+    service: "https://gis.example/MapServer",
+    layerId: 0,
+  });
+  const fetchJson = async (url: string) => {
+    const offset = Number(new URL(url).searchParams.get("resultOffset"));
+    offsets.push(offset);
+    const n = offset < 2500 ? 1000 : 300; // server caps pages at 1,000
+    return {
+      features: Array.from({ length: n }, (_, i) => ({
+        type: "Feature",
+        id: offset + i,
+        geometry: { type: "Point", coordinates: [-104.6, 38.25] },
+        properties: {},
+      })),
+      exceededTransferLimit: n === 1000,
+    };
+  };
+  const out = await layer.fetch({ fetchJson, fetchBytes: async () => new Uint8Array(), env: {}, now: () => 0 } as any);
+  assert.deepEqual(offsets, [0, 1000, 2000, 3000]);
+  assert.equal(out.features.length, 3300);
+});
+
+test("a road that enters the county between vertices still counts", () => {
+  const crossing = { type: "LineString", coordinates: [[-105.5, 38.2], [-104.0, 38.2]] };
+  const elsewhere = { type: "LineString", coordinates: [[-105.5, 39.7], [-104.0, 39.7]] };
+  assert.equal(touchesBBox(crossing, PUEBLO_COUNTY_BBOX), true);
+  assert.equal(touchesBBox(elsewhere, PUEBLO_COUNTY_BBOX), false);
+  assert.equal(touchesBBox({ type: "Point", coordinates: [-104.6, 38.25] }, PUEBLO_COUNTY_BBOX), true);
 });
