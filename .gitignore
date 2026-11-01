@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# PWA placeholder icons the server writes at startup
+public/icon-*.png
